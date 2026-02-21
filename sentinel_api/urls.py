@@ -45,6 +45,8 @@ This API provides endpoints for:
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('accounts.urls')),
+    path('api/patients/', include('patients.urls')),
+    path('api/monitoring/', include('bed_node.urls')),
     
     # Swagger documentation URLs
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),

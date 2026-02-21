@@ -12,7 +12,8 @@ class PatientListSerializer(serializers.ModelSerializer):
     heart_rate = serializers.SerializerMethodField()
     spo2 = serializers.SerializerMethodField()
     risk_level = serializers.SerializerMethodField()
-    trend = serializers.SerializerMethodField()
+    ai_analysis = serializers.SerializerMethodField()
+    # trend = serializers.SerializerMethodField()
     vitals_updated_at = serializers.SerializerMethodField()
     
     class Meta:
@@ -21,7 +22,7 @@ class PatientListSerializer(serializers.ModelSerializer):
             'id', 'patient_id', 'name', 'bed_number', 'ward',
             'hospital', 'hospital_name', 'created_at',
             'temperature', 'heart_rate', 'spo2',
-            'risk_level', 'trend', 'vitals_updated_at'
+            'risk_level', 'ai_analysis', 'vitals_updated_at'  # 'trend' removed
         ]
     
     def get_temperature(self, obj):
@@ -52,12 +53,20 @@ class PatientListSerializer(serializers.ModelSerializer):
         except LatestVitals.DoesNotExist:
             return ''
     
-    def get_trend(self, obj):
-        """Get vitals trend"""
+    def get_ai_analysis(self, obj):
+        """Get AI analysis"""
         try:
-            return obj.latest_vitals.trend
+            return obj.latest_vitals.ai_analysis
         except LatestVitals.DoesNotExist:
             return ''
+    
+    # Trend method commented out - requires historical vitals tracking
+    # def get_trend(self, obj):
+    #     """Get vitals trend"""
+    #     try:
+    #         return obj.latest_vitals.trend
+    #     except LatestVitals.DoesNotExist:
+    #         return ''
     
     def get_vitals_updated_at(self, obj):
         """Get vitals last update timestamp"""

@@ -42,11 +42,12 @@ class Device(models.Model):
 class LatestVitals(models.Model):
     """Current vital signs state per patient - powers the dashboard"""
     
-    TREND_CHOICES = [
-        ('STABLE', 'Stable'),
-        ('RISING', 'Rising'),
-        ('FALLING', 'Falling'),
-    ]
+    # TREND_CHOICES commented out - requires historical vitals tracking
+    # TREND_CHOICES = [
+    #     ('STABLE', 'Stable'),
+    #     ('RISING', 'Rising'),
+    #     ('FALLING', 'Falling'),
+    # ]
     
     patient = models.OneToOneField(
         Patient,
@@ -78,12 +79,18 @@ class LatestVitals(models.Model):
         default='',
         help_text='Calculated risk level (e.g., LOW, MEDIUM, HIGH)'
     )
-    trend = models.CharField(
-        max_length=10,
-        choices=TREND_CHOICES,
-        default='STABLE',
-        help_text='Vital signs trend'
+    ai_analysis = models.TextField(
+        blank=True,
+        default='',
+        help_text='AI-generated analysis and recommendations from Gemini'
     )
+    # Trend field commented out - requires historical vitals tracking
+    # trend = models.CharField(
+    #     max_length=10,
+    #     choices=TREND_CHOICES,
+    #     default='STABLE',
+    #     help_text='Vital signs trend'
+    # )
     updated_at = models.DateTimeField(
         auto_now=True,
         help_text='Last update timestamp'
@@ -96,7 +103,7 @@ class LatestVitals(models.Model):
     
     def __str__(self):
         patient_name = self.patient.name or f"Patient {self.patient.patient_id}"
-        return f"{patient_name} - {self.trend} ({self.updated_at.strftime('%Y-%m-%d %H:%M')})"
+        return f"{patient_name} - {self.risk_level} ({self.updated_at.strftime('%Y-%m-%d %H:%M')})"
 
 
 class Prediction(models.Model):
@@ -175,6 +182,11 @@ class Alert(models.Model):
         max_length=10,
         choices=SEVERITY_CHOICES,
         help_text='Alert severity level'
+    )
+    ai_analysis = models.TextField(
+        blank=True,
+        default='',
+        help_text='AI-generated context and recommendations for this alert'
     )
     is_active = models.BooleanField(
         default=True,

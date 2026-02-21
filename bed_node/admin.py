@@ -21,10 +21,10 @@ class DeviceAdmin(admin.ModelAdmin):
 
 @admin.register(LatestVitals)
 class LatestVitalsAdmin(admin.ModelAdmin):
-    list_display = ['patient', 'temperature', 'heart_rate', 'spo2', 'risk_level', 'trend', 'updated_at']
-    list_filter = ['trend', 'risk_level', 'updated_at']
+    list_display = ['patient', 'temperature', 'heart_rate', 'spo2', 'risk_level', 'updated_at']  # 'trend' removed
+    list_filter = ['risk_level', 'updated_at']  # 'trend' removed
     search_fields = ['patient__patient_id', 'patient__name']
-    readonly_fields = ['updated_at']
+    readonly_fields = ['updated_at', 'ai_analysis']
     
     fieldsets = [
         ('Patient', {
@@ -34,7 +34,7 @@ class LatestVitalsAdmin(admin.ModelAdmin):
             'fields': ['temperature', 'heart_rate', 'spo2']
         }),
         ('Analysis', {
-            'fields': ['risk_level', 'trend', 'updated_at']
+            'fields': ['risk_level', 'ai_analysis', 'updated_at']  # 'trend' removed, 'ai_analysis' added
         }),
     ]
 
@@ -72,7 +72,7 @@ class AlertAdmin(admin.ModelAdmin):
             'fields': ['patient']
         }),
         ('Alert Details', {
-            'fields': ['type', 'severity', 'message']
+            'fields': ['type', 'severity', 'message', 'ai_analysis']
         }),
         ('Status', {
             'fields': ['is_active', 'created_at']

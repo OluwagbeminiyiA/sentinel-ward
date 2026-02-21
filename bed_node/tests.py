@@ -144,8 +144,7 @@ class LatestVitalsModelTests(TestCase):
             temperature=Decimal('37.5'),
             heart_rate=75,
             spo2=98,
-            risk_level='LOW',
-            trend='STABLE'
+            risk_level='LOW'
         )
     
     def test_vitals_creation(self):
@@ -155,7 +154,6 @@ class LatestVitalsModelTests(TestCase):
         self.assertEqual(self.vitals.heart_rate, 75)
         self.assertEqual(self.vitals.spo2, 98)
         self.assertEqual(self.vitals.risk_level, 'LOW')
-        self.assertEqual(self.vitals.trend, 'STABLE')
         self.assertIsNotNone(self.vitals.updated_at)
     
     def test_one_to_one_relationship(self):
@@ -180,32 +178,31 @@ class LatestVitalsModelTests(TestCase):
         self.assertIsNone(vitals.heart_rate)
         self.assertIsNone(vitals.spo2)
         self.assertEqual(vitals.risk_level, '')
-        self.assertEqual(vitals.trend, 'STABLE')
     
-    def test_default_trend_stable(self):
-        """Test default trend is STABLE"""
-        patient2 = Patient.objects.create(
-            patient_id='PAT_003',
-            bed_number='103',
-            ward='ICU',
-            hospital=self.hospital
-        )
-        vitals = LatestVitals.objects.create(patient=patient2)
-        self.assertEqual(vitals.trend, 'STABLE')
+    # def test_default_trend_stable(self):
+    #     """Test default trend is STABLE"""
+    #     patient2 = Patient.objects.create(
+    #         patient_id='PAT_003',
+    #         bed_number='103',
+    #         ward='ICU',
+    #         hospital=self.hospital
+    #     )
+    #     vitals = LatestVitals.objects.create(patient=patient2)
+    #     self.assertEqual(vitals.trend, 'STABLE')
     
-    def test_trend_choices(self):
-        """Test valid trend values"""
-        self.vitals.trend = 'RISING'
-        self.vitals.save()
-        self.assertEqual(self.vitals.trend, 'RISING')
-        
-        self.vitals.trend = 'FALLING'
-        self.vitals.save()
-        self.assertEqual(self.vitals.trend, 'FALLING')
-        
-        self.vitals.trend = 'STABLE'
-        self.vitals.save()
-        self.assertEqual(self.vitals.trend, 'STABLE')
+    # def test_trend_choices(self):
+    #     """Test valid trend values"""
+    #     self.vitals.trend = 'RISING'
+    #     self.vitals.save()
+    #     self.assertEqual(self.vitals.trend, 'RISING')
+    #     
+    #     self.vitals.trend = 'FALLING'
+    #     self.vitals.save()
+    #     self.assertEqual(self.vitals.trend, 'FALLING')
+    #     
+    #     self.vitals.trend = 'STABLE'
+    #     self.vitals.save()
+    #     self.assertEqual(self.vitals.trend, 'STABLE')
     
     def test_updated_at_auto_update(self):
         """Test updated_at updates automatically"""
@@ -218,7 +215,7 @@ class LatestVitalsModelTests(TestCase):
         """Test __str__ method with patient name"""
         result = str(self.vitals)
         self.assertIn('John Doe', result)
-        self.assertIn('STABLE', result)
+        self.assertIn('LOW', result)
     
     def test_string_representation_without_name(self):
         """Test __str__ method without patient name"""
@@ -302,7 +299,6 @@ class LatestVitalsModelTests(TestCase):
         self.vitals.heart_rate = 95
         self.vitals.spo2 = 94
         self.vitals.risk_level = 'HIGH'
-        self.vitals.trend = 'RISING'
         self.vitals.save()
         
         self.vitals.refresh_from_db()
@@ -310,7 +306,6 @@ class LatestVitalsModelTests(TestCase):
         self.assertEqual(self.vitals.heart_rate, 95)
         self.assertEqual(self.vitals.spo2, 94)
         self.assertEqual(self.vitals.risk_level, 'HIGH')
-        self.assertEqual(self.vitals.trend, 'RISING')
 
 
 class PredictionModelTests(TestCase):

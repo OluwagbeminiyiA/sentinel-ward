@@ -435,3 +435,6 @@ pip-selfcheck.json
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/django,visualstudiocode,pycharm+iml,pycharm+all,pycharm,venv,virtualenv
+
+
+./bed_node/management/commands/create_dummy_data.py

@@ -7,6 +7,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from decimal import Decimal
 import random
+import logging
 
 from .models import Device, LatestVitals, Prediction, Alert
 from .serializers import (
@@ -14,6 +15,10 @@ from .serializers import (
     PredictionSerializer, AlertSerializer
 )
 from patients.models import Patient
+from patients.serializers import PatientListSerializer
+from .ai_service import get_analyzer
+
+logger = logging.getLogger(__name__)
 
 
 @swagger_auto_schema(
@@ -73,12 +78,23 @@ def receive_vitals(request):
         }
     )
     
-    # Calculate risk level and trend based on vitals
+    # Calculate risk level based on vitals
     risk_level, alerts_to_create = _assess_risk(patient, vitals)
     vitals.risk_level = risk_level
     
-    # Simple trend detection
-    vitals.trend = _calculate_trend(vitals)
+    # Trend detection commented out - requires historical vitals tracking
+    # vitals.trend = _calculate_trend(vitals)
+    
+    # Generate AI analysis using Gemini
+    try:
+        analyzer = get_analyzer()
+        ai_analysis = analyzer.analyze_vitals(patient, vitals)
+        vitals.ai_analysis = ai_analysis
+        logger.info(f"AI analysis generated for patient {patient_id}")
+    except Exception as e:
+        logger.error(f"AI analysis failed for patient {patient_id}: {str(e)}")
+        vitals.ai_analysis = "AI analysis unavailable"
+    
     vitals.save()
     
     # Create alerts if needed
@@ -177,10 +193,22 @@ def simulate_vitals(request):
         }
     )
     
-    # Calculate risk level and trend based on vitals
+    # Calculate risk level based on vitals
     risk_level, alerts_to_create = _assess_risk(patient, vitals)
     vitals.risk_level = risk_level
-    vitals.trend = _calculate_trend(vitals)
+    # Trend detection commented out - requires historical vitals tracking
+    # vitals.trend = _calculate_trend(vitals)
+    
+    # Generate AI analysis using Gemini
+    try:
+        analyzer = get_analyzer()
+        ai_analysis = analyzer.analyze_vitals(patient, vitals)
+        vitals.ai_analysis = ai_analysis
+        logger.info(f"AI analysis generated for simulated vitals - patient {patient_id}")
+    except Exception as e:
+        logger.error(f"AI analysis failed for simulated vitals - patient {patient_id}: {str(e)}")
+        vitals.ai_analysis = "AI analysis unavailable"
+    
     vitals.save()
     
     # Create alerts if needed
@@ -189,7 +217,8 @@ def simulate_vitals(request):
             patient=patient,
             type=alert_data['type'],
             message=alert_data['message'],
-            severity=alert_data['severity']
+            severity=alert_data['severity'],
+            ai_analysis=vitals.ai_analysis
         )
     
     return Response({
@@ -441,17 +470,87 @@ def _assess_risk(patient, vitals):
     return risk_level, alerts
 
 
-def _calculate_trend(vitals):
+@swagger_auto_schema(
+    method='get',
+    operation_description='Get dashboard summary: all patients with vitals, active alerts, and device status',
+    responses={
+        200: openapi.Response(
+            description='Dashboard summary data',
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'patients': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT)),
+                    'alerts': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT)),
+                    'stats': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'total_patients': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'critical_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'high_risk_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'medium_risk_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'low_risk_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'active_alerts_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'online_devices_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+                        }
+                    )
+                }
+            )
+        )
+    }
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_dashboard_summary(request):
     """
-    Calculate vital signs trend.
-    In a real system, this would compare with historical data.
-    For now, returns a simple assessment.
+    Get comprehensive dashboard data for frontend.
+    Returns patients with vitals, active alerts, device status, and summary stats.
     """
-    # Simple heuristic based on current values
-    if vitals.temperature and float(vitals.temperature) > 38.0:
-        return 'RISING'
-    elif vitals.spo2 and vitals.spo2 < 93:
-        return 'FALLING'
-    else:
-        return 'STABLE'
+    # Get all patients with their vitals
+    patients = Patient.objects.select_related('hospital', 'latest_vitals').all()
+    patients_data = PatientListSerializer(patients, many=True).data
+    
+    # Get active alerts
+    alerts = Alert.objects.filter(is_active=True).select_related('patient').order_by('-created_at')
+    alerts_data = AlertSerializer(alerts, many=True).data
+    
+    
+    # Calculate statistics
+    vitals_by_risk = LatestVitals.objects.values('risk_level').distinct()
+    risk_counts = {
+        'CRITICAL': LatestVitals.objects.filter(risk_level='CRITICAL').count(),
+        'HIGH': LatestVitals.objects.filter(risk_level='HIGH').count(),
+        'MEDIUM': LatestVitals.objects.filter(risk_level='MEDIUM').count(),
+        'LOW': LatestVitals.objects.filter(risk_level='LOW').count(),
+    }
+    
+    stats = {
+        'total_patients': patients.count(),
+        'critical_count': risk_counts.get('CRITICAL', 0),
+        'high_risk_count': risk_counts.get('HIGH', 0),
+        'medium_risk_count': risk_counts.get('MEDIUM', 0),
+        'low_risk_count': risk_counts.get('LOW', 0),
+        'active_alerts_count': alerts.count(),
+    }
+    
+    return Response({
+        'patients': patients_data,
+        'alerts': alerts_data,
+        'stats': stats
+    })
+
+
+# Trend calculation commented out - requires historical vitals tracking
+# def _calculate_trend(vitals):
+#     """
+#     Calculate vital signs trend.
+#     In a real system, this would compare with historical data.
+#     For now, returns a simple assessment.
+#     """
+#     # Simple heuristic based on current values
+#     if vitals.temperature and float(vitals.temperature) > 38.0:
+#         return 'RISING'
+#     elif vitals.spo2 and vitals.spo2 < 93:
+#         return 'FALLING'
+#     else:
+#         return 'STABLE'
 

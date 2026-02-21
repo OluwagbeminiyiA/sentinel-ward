@@ -7,6 +7,7 @@ from django.contrib.auth import login
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .serializers import RegistrationSerializer, LoginSerializer
+from .models import UserProfile
 
 
 @swagger_auto_schema(
@@ -170,20 +171,30 @@ def login_view(request):
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
         
-        # Get user profile
-        profile = user.profile
+        # Build user response - handle users without profiles
+        user_data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+        }
+        
+        # Try to get profile if it exists
+        try:
+            profile = user.profile
+            user_data['full_name'] = profile.full_name
+            user_data['hospital'] = profile.hospital.name
+            user_data['hospital_id'] = profile.hospital.id
+        except UserProfile.DoesNotExist:
+            # User has no profile - use basic info
+            user_data['full_name'] = user.get_full_name() or user.username
+            user_data['hospital'] = None
+            user_data['hospital_id'] = None
         
         return Response({
             'message': 'Login successful',
             'access': str(refresh.access_token),
             'refresh': str(refresh),
-            'user': {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'full_name': profile.full_name,
-                'hospital': profile.hospital.name,
-            }
+            'user': user_data
         }, status=status.HTTP_200_OK)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

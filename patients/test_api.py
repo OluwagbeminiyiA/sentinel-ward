@@ -65,8 +65,7 @@ class PatientAPITests(APITestCase):
             temperature=Decimal('39.5'),
             heart_rate=130,
             spo2=88,
-            risk_level='CRITICAL',
-            trend='FALLING'
+            risk_level='CRITICAL'
         )
         
         LatestVitals.objects.create(
@@ -74,8 +73,7 @@ class PatientAPITests(APITestCase):
             temperature=Decimal('38.8'),
             heart_rate=95,
             spo2=93,
-            risk_level='HIGH',
-            trend='RISING'
+            risk_level='HIGH'
         )
         
         LatestVitals.objects.create(
@@ -83,8 +81,7 @@ class PatientAPITests(APITestCase):
             temperature=Decimal('37.2'),
             heart_rate=72,
             spo2=98,
-            risk_level='LOW',
-            trend='STABLE'
+            risk_level='LOW'
         )
     
     def test_patient_list(self):
@@ -154,7 +151,6 @@ class PatientAPITests(APITestCase):
         self.assertIn('heart_rate', patient)
         self.assertIn('spo2', patient)
         self.assertIn('risk_level', patient)
-        self.assertIn('trend', patient)
     
     def test_patient_detail(self):
         """Test getting detailed patient information"""
@@ -279,13 +275,13 @@ class PatientAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 2)
     
-    def test_patient_vitals_trend_displayed(self):
-        """Test patient list shows vitals trend"""
-        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.token}')
-        response = self.client.get('/api/patients/?patient_id=PAT_001')
-        
-        # Get patient 1 from results
-        patients = response.data['patients']
-        patient1 = [p for p in patients if p['patient_id'] == 'PAT_001'][0]
-        
-        self.assertEqual(patient1['trend'], 'FALLING')
+    # def test_patient_vitals_trend_displayed(self):
+    #     """Test patient list shows vitals trend"""
+    #     self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.token}')
+    #     response = self.client.get('/api/patients/?patient_id=PAT_001')
+    #     
+    #     # Get patient 1 from results
+    #     patients = response.data['patients']
+    #     patient1 = [p for p in patients if p['patient_id'] == 'PAT_001'][0]
+    #     
+    #     self.assertEqual(patient1['trend'], 'FALLING')

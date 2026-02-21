@@ -2,6 +2,9 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # Dashboard
+    path('dashboard/', views.get_dashboard_summary, name='dashboard_summary'),
+    
     # IoT device endpoints
     path('vitals/receive/', views.receive_vitals, name='receive_vitals'),
     path('vitals/simulate/', views.simulate_vitals, name='simulate_vitals'),

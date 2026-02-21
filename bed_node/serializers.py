@@ -22,9 +22,9 @@ class LatestVitalsSerializer(serializers.ModelSerializer):
         fields = [
             'patient', 'patient_id', 'patient_name',
             'temperature', 'heart_rate', 'spo2',
-            'risk_level', 'trend', 'updated_at'
+            'risk_level', 'ai_analysis', 'updated_at'
         ]
-        read_only_fields = ['updated_at']
+        read_only_fields = ['updated_at', 'ai_analysis']
 
 
 class VitalsDataSerializer(serializers.Serializer):
@@ -61,6 +61,6 @@ class AlertSerializer(serializers.ModelSerializer):
         model = Alert
         fields = [
             'id', 'patient', 'patient_id', 'patient_name', 'bed_number',
-            'type', 'message', 'severity', 'is_active', 'created_at'
+            'type', 'message', 'severity', 'ai_analysis', 'is_active', 'created_at'
         ]
         read_only_fields = ['created_at']

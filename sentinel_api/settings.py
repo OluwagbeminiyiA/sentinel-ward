@@ -156,6 +156,9 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
+# Gemini AI Settings
+GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
+
 try:
     from .local_settings import *
 except ImportError:

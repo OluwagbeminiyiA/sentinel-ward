@@ -380,7 +380,7 @@ Response:
 
 - **Issues**: GitHub Issues for bug reports and feature requests
 - **Discussions**: GitHub Discussions for questions and ideas
-- **Email**: support@sentinelward.io (enterprise inquiries)
+
 
 ---
 

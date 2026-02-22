@@ -384,6 +384,57 @@ Response:
 
 ---
 
+## 🔌 IoT Example Files
+
+The main IoT implementation is `patient_iot_real_time_data.py` at the project root. Additional example scripts are in `iot_examples/`.
+
+### `patient_iot_real_time_data.py` ⭐ (Main IoT File)
+
+The primary Pico W script used in production. Features:
+- **AHT10 temperature sensor** via I2C (SCL → GP15, SDA → GP6)
+- **Emergency button** on GP14 (wired to 3V3 with `PULL_DOWN`)
+- **Temperature spike detection** — alerts on fever, hypothermia, or sudden changes
+- **Vitals sent every 1 minute** to `/api/monitoring/vitals/receive/`
+- **Spike checks every 30 seconds** with 1-minute alert cooldown
+
+**Wiring:**
+
+| Component | Pico W Pin |
+|-----------|------------|
+| AHT10 SCL | GP15 (Pin 20) |
+| AHT10 SDA | GP6 (Pin 9) |
+| AHT10 VCC | 3V3 (Pin 36) |
+| AHT10 GND | GND |
+| Button | GP14 → 3V3 |
+
+**Configuration (top of file):**
+```python
+ssid = 'YourWiFiName'
+password = 'YourPassword'
+VITALS_URL    = "http://<your-pc-ip>:8080/api/monitoring/vitals/receive/"
+EMERGENCY_URL = "http://<your-pc-ip>:8080/api/monitoring/emergency/"
+DEVICE_ID     = "SMM_bed_201_node"   # Must exist in DB
+# patient_id hardcoded to "PAT004" in send_vitals() and send_alert()
+```
+
+**Spike Detection Thresholds:**
+```python
+TEMP_HIGH  = 38.0   # Fever threshold (°C)
+TEMP_LOW   = 35.0   # Hypothermia threshold (°C)
+TEMP_SPIKE = 1.5    # Alert if temp changes by more than 1.5°C
+```
+
+
+### Quick Start
+1. Install **Thonny IDE** and connect your Pico W via USB
+2. Upload `ahtx0.py` (AHT10 driver) to the Pico W root
+3. Open `patient_iot_real_time_data.py`, update WiFi and IP settings
+4. Run your backend: `python manage.py runserver 0.0.0.0:8080`
+5. Save the script as `main.py` on the Pico W to auto-run on boot
+
+
+---
+
 **Built for Healthcare Professionals**
 
 *Improving patient outcomes through technology*

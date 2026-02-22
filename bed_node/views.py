@@ -539,6 +539,105 @@ def get_dashboard_summary(request):
     })
 
 
+@swagger_auto_schema(
+    method='post',
+    operation_description='Emergency alert triggered by IoT device button press',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'device_id': openapi.Schema(type=openapi.TYPE_STRING, description='Device identifier'),
+            'patient_id': openapi.Schema(type=openapi.TYPE_STRING, description='Patient identifier (optional if device_id provided)'),
+            'message': openapi.Schema(type=openapi.TYPE_STRING, description='Optional custom message'),
+        },
+        required=['device_id']
+    ),
+    responses={
+        200: openapi.Response('Emergency alert created', AlertSerializer),
+        404: 'Device or patient not found',
+        400: 'Bad request'
+    }
+)
+@api_view(['POST'])
+@permission_classes([AllowAny])  # IoT devices don't use JWT auth
+def emergency_alert(request):
+    """
+    Handle emergency alert from IoT device button press.
+    Creates a CRITICAL alert immediately for patient assistance.
+    """
+    device_id = request.data.get('device_id')
+    patient_id = request.data.get('patient_id')
+    custom_message = request.data.get('message', '')
+    
+    if not device_id:
+        return Response(
+            {'error': 'device_id is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Verify device exists and get associated patient
+    try:
+        device = Device.objects.get(device_id=device_id)
+    except Device.DoesNotExist:
+        return Response(
+            {'error': f'Device {device_id} not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # Get patient - either from patient_id or device's bed number
+    patient = None
+    if patient_id:
+        patient = Patient.objects.filter(patient_id=patient_id).first()
+        if not patient:
+            return Response(
+                {'error': f'Patient {patient_id} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    else:
+        # Try to find patient by device's bed number - use first active patient in that bed
+        patient = Patient.objects.filter(bed_number=device.bed_number).order_by('-id').first()
+        if not patient:
+            return Response(
+                {'error': f'No patient found in bed {device.bed_number}'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    # Get current vitals for AI context (if available)
+    ai_analysis = "Patient pressed emergency call button. Immediate assistance required."
+    try:
+        vitals = LatestVitals.objects.get(patient=patient)
+        # Generate AI analysis with current vitals context
+        analyzer = get_analyzer()
+        ai_context = analyzer.quick_risk_assessment(vitals)
+        if ai_context:
+            ai_analysis = f"EMERGENCY CALL - Patient assistance requested. {ai_context}"
+        else:
+            ai_analysis = f"EMERGENCY CALL - Patient assistance requested. Current vitals: Temp {vitals.temperature}°C, HR {vitals.heart_rate} BPM, SpO2 {vitals.spo2}%."
+    except LatestVitals.DoesNotExist:
+        pass
+    except Exception as e:
+        logger.error(f"AI analysis failed for emergency alert: {str(e)}")
+    
+    # Create emergency alert
+    alert_message = custom_message if custom_message else f'Emergency call button pressed - bed {device.bed_number}'
+    
+    alert = Alert.objects.create(
+        patient=patient,
+        type='HIGH_RISK',
+        message=alert_message,
+        severity='CRITICAL',
+        ai_analysis=ai_analysis,
+        is_active=True
+    )
+    
+    logger.info(f"Emergency alert created: Patient {patient.patient_id}, Device {device_id}")
+    
+    return Response({
+        'status': 'success',
+        'message': 'Emergency alert created',
+        'alert': AlertSerializer(alert).data
+    }, status=status.HTTP_200_OK)
+
+
 # Trend calculation commented out - requires historical vitals tracking
 # def _calculate_trend(vitals):
 #     """

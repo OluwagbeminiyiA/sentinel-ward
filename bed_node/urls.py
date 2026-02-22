@@ -9,6 +9,7 @@ urlpatterns = [
     path('vitals/receive/', views.receive_vitals, name='receive_vitals'),
     path('vitals/simulate/', views.simulate_vitals, name='simulate_vitals'),
     path('device/status/', views.update_device_status, name='update_device_status'),
+    path('emergency/', views.emergency_alert, name='emergency_alert'),
     
     # Patient vitals
     path('patients/<str:patient_id>/vitals/', views.get_patient_vitals, name='get_patient_vitals'),
